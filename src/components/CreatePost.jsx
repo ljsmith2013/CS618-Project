@@ -8,13 +8,22 @@ export function CreatePost() {
 
   const [contents, setContents] = useState("");
 
+  const [ingredientsText, setIngredientsText] = useState("");
+
+  const [imageUrl, setImageUrl] = useState("");
+
   const [token] = useAuth();
 
   const queryClient = useQueryClient();
 
   const createPostMutation = useMutation({
-    mutationFn: () => createPost(token, { title, contents }),
-    onSuccess: () => queryClient.invalidateQueries(["posts"]),
+    mutationFn: () => createPost(token, { title, contents, ingredients: ingredientsText.split("\n").map((line) => line.trimEnd()).filter(Boolean), imageUrl: imageUrl || undefined, }),
+    onSuccess: () => {queryClient.invalidateQueries(["posts"]);
+    setTitle("");
+    setContents("");
+    setIngredientsText("");
+    setImageUrl("");
+    },
   });
 
   const handleSubmit = (e) => {
@@ -37,10 +46,40 @@ export function CreatePost() {
         />
       </div>
       <br />
-      <textarea
+      <div>
+        <label htmlFor="ingredients">
+          Ingredients <small>(one per line)</small>
+        </label>
+        <br />
+        <textarea
+          id = "ingredients"
+          rows = {5}
+          value = {ingredientsText}
+          onChange = {(e) => setIngredientsText(e.target.value)}
+          />
+      </div>
+      <br />
+      <div>
+        <label htmlFor = "contents">
+          Instructions
+        </label>
+        <br />
+        <textarea
         value={contents}
         onChange={(e) => setContents(e.target.value)}
-      />
+        />
+      </div>
+      <div>
+        <label htmlFor = "image-url">Image URL</label>
+        <br/>
+        <input
+          id = "image-url"
+          type = "url"
+          placeholder = "https://example.com/food-image.jpg"
+          value = {imageUrl}
+          onChange = {(e) => setImageUrl(e.target.value)}
+        />
+      </div>
       <br />
       <br />
       <input
