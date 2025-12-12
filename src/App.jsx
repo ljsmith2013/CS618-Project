@@ -3,6 +3,7 @@ import { Blog } from "./pages/Blog.jsx";
 import { Signup } from "./pages/Signup.jsx";
 import { Login } from "./pages/Login.jsx";
 import { AuthContextProvider } from "./contexts/AuthContext.jsx";
+import { ViewRecipe } from "./pages/ViewPost.jsx";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
     path: "/login",
     element: <Login />,
   },
+  {
+    path: "/recipes/:id",
+    element: <ViewRecipe />
+  }
 ]);
 
 export function App() {

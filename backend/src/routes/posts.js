@@ -6,11 +6,22 @@ import {
   createPost,
   updatePost,
   deletePost,
+  likePost,
+  unlikePost,
+  listTopPosts
 } from "../services/posts.js";
 
 import { requireAuth } from "../middleware/jwt.js";
 
 export function postsRoutes(app) {
+
+  const withLikeCount = (p) => {
+    const obj = p?.toObject ? p.toObject() : p;
+    return {
+      ...obj,
+      likecount: Array.isArray(obj?.likedby) ? obj.likedby.length : 0,
+    };
+  };
   app.get("/api/v1/posts", async (req, res) => {
     const { sortBy, sortOrder, author, tag } = req.query;
     const options = { sortBy, sortOrder };
@@ -20,11 +31,14 @@ export function postsRoutes(app) {
           .status(400)
           .json({ error: "query by either author or tag, not both" });
       } else if (author) {
-        return res.json(await listPostsByAuthor(author, options));
+        const posts = await listPostsByAuthor(author, options);
+        return res.json(posts.map(withLikeCount));
       } else if (tag) {
-        return res.json(await listPostsByTag(tag, options));
+        const posts = await listPostsByTag(tag, options);
+        return res.json(posts.map(withLikeCount));
       } else {
-        return res.json(await listAllPosts(options));
+        const posts = await listAllPosts(options);
+        return res.json(posts.map(withLikeCount));
       }
     } catch (err) {
       console.error("error listing posts", err);
@@ -36,7 +50,7 @@ export function postsRoutes(app) {
     try {
       const post = await getPostById(id);
       if (post === null) return res.status(404).end();
-      return res.json(post);
+      return res.json(withLikeCount(post));
     } catch (err) {
       console.error("error getting post", err);
       return res.status(500).end();
@@ -50,6 +64,15 @@ export function postsRoutes(app) {
       console.error("error creating post", err);
       return res.status(500).end();
     }
+  });
+  app.post("/api/v1/posts/:postId/like", requireAuth, async (req, res) => {
+    const { postId } = req.params;
+    const userId = req.auth.sub;
+
+    const updated = await likePost(userId, postId);
+    if (!updated) return res.status(404).json({ message: "post not found" });
+
+    res.json(withLikeCount(updated));
   });
   app.patch("/api/v1/posts/:id", requireAuth, async (req, res) => {
     try {
@@ -69,5 +92,14 @@ export function postsRoutes(app) {
       console.error("error deleting post", err);
       return res.status(500).end();
     }
+  });
+  app.delete("/api/v1/posts/:postId/like", requireAuth, async (req, res) => {
+    const { postId } = req.params;
+    const userId = req.auth.sub;
+
+    const updated = await unlikePost(userId, postId);
+    if (!updated) return res.status(404).json({ message: "post not found"});
+
+    res.json(withLikeCount(updated));
   });
 }
