@@ -8,7 +8,6 @@ import {
   deletePost,
   likePost,
   unlikePost,
-  listTopPosts
 } from "../services/posts.js";
 
 import { requireAuth } from "../middleware/jwt.js";
@@ -57,14 +56,21 @@ export function postsRoutes(app) {
     }
   });
   app.post("/api/v1/posts", requireAuth, async (req, res) => {
-    try {
-      const post = await createPost(req.auth.sub, req.body);
-      return res.json(post);
-    } catch (err) {
-      console.error("error creating post", err);
-      return res.status(500).end();
+  try {
+    const post = await createPost(req.auth.sub, req.body);
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("recipe.new", {
+        id: post?._id?.toString?.() ?? post?._id,
+        title: post?.title,
+      });
     }
-  });
+    return res.json(post);
+  } catch (err) {
+    console.error("error creating post", err);
+    return res.status(500).end();
+  }
+});
   app.post("/api/v1/posts/:postId/like", requireAuth, async (req, res) => {
     const { postId } = req.params;
     const userId = req.auth.sub;
